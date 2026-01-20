@@ -22,16 +22,6 @@ export default function HomePage() {
           </Link>
         </div>
       </Card>
-
-      <Card>
-        <CardTitle>Try a sample poll</CardTitle>
-        <p className="mt-2 text-sm text-black/60">We’ll make this dynamic later.</p>
-        <div className="mt-3">
-          <Link to="/poll/demo-123">
-            <Button variant="ghost">Open demo poll</Button>
-          </Link>
-        </div>
-      </Card>
     </div>
   );
 }
