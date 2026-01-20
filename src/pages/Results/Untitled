@@ -1,0 +1,21 @@
+import { Link, useParams } from 'react-router-dom';
+
+export default function ResultsPage() {
+  const { pollId } = useParams();
+
+  return (
+    <div className="page">
+      <h1 className="page-title">Results</h1>
+      <p className="muted">Poll ID: {pollId}</p>
+
+      <div className="card">
+        Charts coming soon…
+        <div style={{ marginTop: 12 }}>
+          <Link className="btn btn-secondary" to={`/poll/${pollId}`}>
+            Back to vote
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
