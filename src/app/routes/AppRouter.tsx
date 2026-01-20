@@ -6,6 +6,7 @@ import DashboardPage from '../../pages/Dashboard/DashboardPage';
 import HomePage from '../../pages/Home/HomePage';
 import ResultsPage from '../../pages/Results/ResultsPage';
 import VotePage from '../../pages/Vote/VotePage';
+import NotFoundPage from '../../pages/NotFound/NotFoundPage';
 
 const router = createBrowserRouter([
   {
@@ -17,7 +18,8 @@ const router = createBrowserRouter([
       { path: 'dashboard', element: <DashboardPage /> }, // "/dashboard"
       { path: 'poll/:pollId', element: <VotePage /> }, // "/poll/123"
       { path: 'poll/:pollId/results', element: <ResultsPage /> }, // "/poll/123/results"
-      { path: '*', element: <Navigate to="/" replace /> }, // fallback
+      { path: '*', element: <NotFoundPage /> },
+ // fallback
     ],
   },
 ]);
