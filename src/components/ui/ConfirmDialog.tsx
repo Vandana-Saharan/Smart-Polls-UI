@@ -43,10 +43,9 @@ export default function ConfirmDialog({
             </Dialog.Close>
 
             <Dialog.Close asChild>
-            <Button variant="danger" type="button" onClick={onConfirm}>
-  {confirmText}
-</Button>
-
+              <Button variant="danger" type="button" onClick={onConfirm}>
+                {confirmText}
+              </Button>
             </Dialog.Close>
           </div>
         </Dialog.Content>

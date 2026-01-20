@@ -4,7 +4,6 @@ import { cn } from '../../lib/cn';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
-
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: Variant;
 };

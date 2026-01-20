@@ -104,14 +104,15 @@ export default function ResultsPage() {
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
                 <Tooltip
-  formatter={(value: number | undefined) => [value ?? 0, 'Votes']}
-  labelFormatter={(label: unknown, payload: ReadonlyArray<Payload<number, 'Votes'>>) => {
-    const first = payload[0]?.payload as { fullName?: string } | undefined;
-    return first?.fullName ?? String(label);
-  }}
-/>
-
-
+                  formatter={(value: number | undefined) => [value ?? 0, 'Votes']}
+                  labelFormatter={(
+                    label: unknown,
+                    payload: ReadonlyArray<Payload<number, 'Votes'>>,
+                  ) => {
+                    const first = payload[0]?.payload as { fullName?: string } | undefined;
+                    return first?.fullName ?? String(label);
+                  }}
+                />
 
                 <Bar dataKey="votes" />
               </BarChart>

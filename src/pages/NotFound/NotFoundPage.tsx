@@ -10,9 +10,7 @@ export default function NotFoundPage() {
 
       <Card>
         <CardTitle>404</CardTitle>
-        <p className="mt-2 text-sm text-black/60">
-          The page you’re looking for doesn’t exist.
-        </p>
+        <p className="mt-2 text-sm text-black/60">The page you’re looking for doesn’t exist.</p>
         <div className="mt-3">
           <Link to="/">
             <Button variant="secondary">Go home</Button>

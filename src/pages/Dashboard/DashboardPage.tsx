@@ -21,15 +21,14 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const [polls, setPolls] = useState(() => listPolls());
 
-// votes are derived data -> compute with useMemo for cleanliness
-const pollsWithVotes = useMemo(() => {
-  return polls.map((poll) => {
-    const results = getResults(poll.id);
-    const totalVotes = results ? Object.values(results.votes).reduce((s, v) => s + v, 0) : 0;
-    return { poll, totalVotes };
-  });
-}, [polls]);
-
+  // votes are derived data -> compute with useMemo for cleanliness
+  const pollsWithVotes = useMemo(() => {
+    return polls.map((poll) => {
+      const results = getResults(poll.id);
+      const totalVotes = results ? Object.values(results.votes).reduce((s, v) => s + v, 0) : 0;
+      return { poll, totalVotes };
+    });
+  }, [polls]);
 
   if (polls.length === 0) {
     return (
@@ -68,8 +67,8 @@ const pollsWithVotes = useMemo(() => {
       </div>
 
       <div className="space-y-3">
-      {pollsWithVotes.map(({ poll, totalVotes }) => {
-  return (
+        {pollsWithVotes.map(({ poll, totalVotes }) => {
+          return (
             <Card key={poll.id} className="p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
