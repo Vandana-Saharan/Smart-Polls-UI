@@ -1,26 +1,65 @@
 import type { Payload } from 'recharts/types/component/DefaultTooltipContent';
 
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import CopyButton from '../../components/shared/CopyButton';
 import Button from '../../components/ui/Button';
 import { Card, CardTitle } from '../../components/ui/Card';
 import { getPoll } from '../../lib/pollsRepo';
-import { ensureResults, getResults } from '../../lib/resultsRepo';
+import { getResults } from '../../lib/resultsRepo';
+import type { Poll, PollResults } from '../../types/poll';
 
 export default function ResultsPage() {
   const { pollId } = useParams();
+  const [poll, setPoll] = useState<Poll | null>(null);
+  const [results, setResults] = useState<PollResults | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const poll = useMemo(() => (pollId ? getPoll(pollId) : null), [pollId]);
+  useEffect(() => {
+    if (!pollId) return;
+    let cancelled = false;
+    async function load() {
+      try {
+        const [pollData, resultsData] = await Promise.all([getPoll(pollId), getResults(pollId)]);
+        if (!cancelled) {
+          setPoll(pollData);
+          setResults(resultsData);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          const message = err instanceof Error ? err.message : 'Failed to load results';
+          setError(message);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [pollId]);
 
-  const results = useMemo(() => {
-    if (!pollId || !poll) return null;
-    return getResults(pollId) ?? ensureResults(poll);
-  }, [pollId, poll]);
+  if (!pollId) return <div className="text-[var(--smart-secondary)]">Invalid poll.</div>;
 
-  if (!pollId) return <div className="text-black/60">Invalid poll.</div>;
+  if (loading) {
+    return <div className="text-[var(--smart-secondary)]">Loading results…</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-3">
+        <h1 className="text-2xl font-bold">Error</h1>
+        <p className="text-[var(--smart-secondary)]">{error}</p>
+        <Link to="/">
+          <Button variant="secondary">Go home</Button>
+        </Link>
+      </div>
+    );
+  }
 
   if (!poll) {
     return (
@@ -52,13 +91,13 @@ export default function ResultsPage() {
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Results</h1>
-        <p className="mt-1 text-black/60">Poll ID: {pollId}</p>
+        <p className="mt-1 text-[var(--smart-secondary)]">Poll ID: {pollId}</p>
       </div>
 
       <Card>
         <CardTitle>{poll.question}</CardTitle>
 
-        <p className="mt-2 text-sm text-black/60">Total votes: {totalVotes}</p>
+        <p className="mt-2 text-sm text-[var(--smart-secondary)]">Total votes: {totalVotes}</p>
 
         <div className="mt-4 space-y-3">
           {poll.options.map((opt) => {
@@ -69,32 +108,32 @@ export default function ResultsPage() {
               <div key={opt.id} className="space-y-1">
                 <div className="flex items-center justify-between text-sm">
                   <span className="font-medium">{opt.text}</span>
-                  <span className="text-black/60">
+                  <span className="text-[var(--smart-secondary)]">
                     {count} ({pct}%)
                   </span>
                 </div>
 
-                <div className="h-2 w-full rounded-full bg-black/10">
-                  <div className="h-2 rounded-full bg-black" style={{ width: `${pct}%` }} />
+                <div className="h-2 w-full rounded-full bg-[var(--smart-secondary)]/20">
+                  <div className="h-2 rounded-full bg-[var(--smart-accent)]" style={{ width: `${pct}%` }} />
                 </div>
               </div>
             );
           })}
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-black/10 bg-white p-4">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[var(--smart-secondary)]/20 bg-white p-4">
           <div className="min-w-0">
-            <p className="text-sm font-medium">Share results</p>
-            <p className="mt-1 truncate text-sm text-black/60">{window.location.href}</p>
+            <p className="text-sm font-medium text-[var(--smart-primary)]">Share results</p>
+            <p className="mt-1 truncate text-sm text-[var(--smart-secondary)]">{window.location.href}</p>
           </div>
 
           <CopyButton text={window.location.href} label="Copy results link" />
         </div>
 
-        <div className="mt-4 rounded-2xl border border-black/10 bg-white p-4">
+        <div className="mt-4 rounded-2xl border border-[var(--smart-secondary)]/20 bg-white p-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium">Votes distribution</p>
-            <p className="text-sm text-black/60">Bar chart</p>
+            <p className="text-sm font-medium text-[var(--smart-primary)]">Votes distribution</p>
+            <p className="text-sm text-[var(--smart-secondary)]">Bar chart</p>
           </div>
 
           <div className="mt-3 h-64 w-full">
@@ -114,7 +153,7 @@ export default function ResultsPage() {
                   }}
                 />
 
-                <Bar dataKey="votes" />
+                <Bar dataKey="votes" fill="#1d546c" />
               </BarChart>
             </ResponsiveContainer>
           </div>

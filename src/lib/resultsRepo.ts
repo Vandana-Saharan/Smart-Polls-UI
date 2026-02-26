@@ -1,72 +1,51 @@
-import type { Poll, PollResults } from '../types/poll';
-import { readJson, writeJson } from './storage';
+import type { PollResults } from '../types/poll';
+import { apiGet, apiPost } from './api';
 
-const RESULTS_KEY = 'smartpolls:results:v1';
-
-type ResultsState = {
-  results: Record<string, PollResults>; // pollId -> results
+type PollResultsResponse = {
+  pollId: string;
+  votes: Record<string, number>;
 };
 
-function readState(): ResultsState {
-  return readJson<ResultsState>(RESULTS_KEY, { results: {} });
-}
+type VoteRequest = {
+  optionId: string;
+  voterId: string;
+};
 
-function writeState(state: ResultsState) {
-  writeJson(RESULTS_KEY, state);
-}
+type VoteResponse = {
+  ok: boolean;
+  message: string;
+};
 
-export function getResults(pollId: string): PollResults | null {
-  const state = readState();
-  return state.results[pollId] ?? null;
-}
-
-export function ensureResults(poll: Poll): PollResults {
-  const state = readState();
-  const existing = state.results[poll.id];
-  if (existing) return existing;
-
-  const votes: Record<string, number> = {};
-  for (const opt of poll.options) votes[opt.id] = 0;
-
-  const created: PollResults = {
-    pollId: poll.id,
-    votes,
+export async function getResults(pollId: string): Promise<PollResults> {
+  const res = await apiGet<PollResultsResponse>(`/api/polls/${encodeURIComponent(pollId)}/results`);
+  // Backend doesn’t track votedBy / updatedAt in this DTO, but UI only needs votes.
+  return {
+    pollId: res.pollId,
+    votes: res.votes,
     votedBy: [],
     updatedAt: new Date().toISOString(),
   };
-
-  state.results[poll.id] = created;
-  writeState(state);
-  return created;
 }
 
-export function submitVote(args: { poll: Poll; optionId: string; voterId: string }) {
-  const { poll, optionId, voterId } = args;
+export async function submitVote(pollId: string, payload: VoteRequest): Promise<{
+  ok: boolean;
+  reason?: 'ALREADY_VOTED' | 'INVALID_OPTION' | 'POLL_NOT_FOUND' | 'UNKNOWN';
+}> {
+  const res = await apiPost<VoteRequest, VoteResponse>(
+    `/api/polls/${encodeURIComponent(pollId)}/vote`,
+    payload,
+  );
 
-  const state = readState();
-  const current = state.results[poll.id] ?? ensureResults(poll);
-
-  // anti-duplicate
-  if (current.votedBy.includes(voterId)) {
-    return { ok: false as const, reason: 'ALREADY_VOTED' as const };
+  if (!res.ok) {
+    const reason =
+      (res.message as
+        | 'ALREADY_VOTED'
+        | 'INVALID_OPTION'
+        | 'POLL_NOT_FOUND'
+        | 'UNKNOWN') ?? 'UNKNOWN';
+    return { ok: false, reason };
   }
 
-  // ensure option exists
-  if (!(optionId in current.votes)) {
-    return { ok: false as const, reason: 'INVALID_OPTION' as const };
-  }
-
-  current.votes[optionId] = (current.votes[optionId] ?? 0) + 1;
-  current.votedBy.push(voterId);
-  current.updatedAt = new Date().toISOString();
-
-  state.results[poll.id] = current;
-  writeState(state);
-
-  return { ok: true as const };
+  return { ok: true };
 }
-export function deleteResults(pollId: string) {
-  const state = readState();
-  delete state.results[pollId];
-  writeState(state);
-}
+

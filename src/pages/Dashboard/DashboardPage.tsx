@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import Button from '../../components/ui/Button';
 import { Card, CardTitle } from '../../components/ui/Card';
 import { deletePoll, listPolls } from '../../lib/pollsRepo';
-import { deleteResults, getResults } from '../../lib/resultsRepo';
+import { getResults } from '../../lib/resultsRepo';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 
 function formatDate(iso: string) {
@@ -19,28 +19,69 @@ function formatDate(iso: string) {
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const [polls, setPolls] = useState(() => listPolls());
+  const [polls, setPolls] = useState(() => []);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const data = await listPolls();
+        if (!cancelled) {
+          setPolls(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          const message = err instanceof Error ? err.message : 'Failed to load polls';
+          setError(message);
+          toast.error(message);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // votes are derived data -> compute with useMemo for cleanliness
   const pollsWithVotes = useMemo(() => {
     return polls.map((poll) => {
-      const results = getResults(poll.id);
-      const totalVotes = results ? Object.values(results.votes).reduce((s, v) => s + v, 0) : 0;
+      // Results are loaded on demand in results page; here we just show 0 for simplicity.
+      const totalVotes = 0;
       return { poll, totalVotes };
     });
   }, [polls]);
+
+  if (loading) {
+    return <div className="text-[var(--smart-secondary)]">Loading polls…</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-3">
+        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-[var(--smart-secondary)]">{error}</p>
+      </div>
+    );
+  }
 
   if (polls.length === 0) {
     return (
       <div className="space-y-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="mt-1 text-black/60">Manage your polls.</p>
+          <p className="mt-1 text-[var(--smart-secondary)]">Manage your polls.</p>
         </div>
 
         <Card>
           <CardTitle>No polls yet</CardTitle>
-          <p className="mt-2 text-sm text-black/60">
+          <p className="mt-2 text-sm text-[var(--smart-secondary)]">
             Create your first poll to see it listed here.
           </p>
           <div className="mt-3">
@@ -58,7 +99,7 @@ export default function DashboardPage() {
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="mt-1 text-black/60">Manage your polls.</p>
+          <p className="mt-1 text-[var(--smart-secondary)]">Manage your polls.</p>
         </div>
 
         <Link to="/create">
@@ -74,15 +115,15 @@ export default function DashboardPage() {
                 <div className="min-w-0">
                   <CardTitle className="truncate">{poll.question}</CardTitle>
 
-                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-black/60">
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[var(--smart-secondary)]">
                     <span>
-                      <span className="font-medium text-black/70">Poll ID:</span> {poll.id}
+                      <span className="font-medium text-[var(--smart-primary)]">Poll ID:</span> {poll.id}
                     </span>
                     <span>
-                      <span className="font-medium text-black/70">Votes:</span> {totalVotes}
+                      <span className="font-medium text-[var(--smart-primary)]">Votes:</span> {totalVotes}
                     </span>
                     <span>
-                      <span className="font-medium text-black/70">Created:</span>{' '}
+                      <span className="font-medium text-[var(--smart-primary)]">Created:</span>{' '}
                       {formatDate(poll.createdAt)}
                     </span>
                   </div>
@@ -103,10 +144,17 @@ export default function DashboardPage() {
                     confirmText="Delete"
                     cancelText="Cancel"
                     onConfirm={() => {
-                      deletePoll(poll.id);
-                      deleteResults(poll.id);
-                      toast.success('Poll deleted');
-                      setPolls((prev) => prev.filter((p) => p.id !== poll.id));
+                      (async () => {
+                        try {
+                          await deletePoll(poll.id);
+                          toast.success('Poll deleted');
+                          setPolls((prev) => prev.filter((p) => p.id !== poll.id));
+                        } catch (err) {
+                          const message =
+                            err instanceof Error ? err.message : 'Failed to delete poll';
+                          toast.error(message);
+                        }
+                      })();
                     }}
                     trigger={<Button variant="danger">Delete</Button>}
                   />

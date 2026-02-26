@@ -8,7 +8,7 @@ export default function HomePage() {
     <div className="space-y-4">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Smart Polls</h1>
-        <p className="mt-2 text-black/60">Create a poll, share a link, and view results.</p>
+        <p className="mt-2 text-[var(--smart-secondary)]">Create a poll, share a link, and view results.</p>
       </div>
 
       <Card>

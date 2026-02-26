@@ -1,9 +1,10 @@
 import { useNavigate } from 'react-router-dom';
-import { createPoll } from '../../lib/pollsRepo';
-
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { toast } from 'sonner';
+
+import { createPoll } from '../../lib/pollsRepo';
 
 import Button from '../../components/ui/Button';
 import { Card, CardTitle } from '../../components/ui/Card';
@@ -44,27 +45,34 @@ export default function CreatePollPage() {
     control: form.control,
     name: 'options',
   });
-  const onSubmit = (values: CreatePollForm) => {
-    const poll = createPoll({
-      question: values.question,
-      options: values.options.map((o) => o.text),
-    });
+  const onSubmit = async (values: CreatePollForm) => {
+    try {
+      const poll = await createPoll({
+        question: values.question,
+        options: values.options.map((o) => o.text),
+      });
 
-    // reset (optional)
-    form.reset({
-      question: '',
-      options: [{ text: '' }, { text: '' }],
-    });
+      // reset (optional)
+      form.reset({
+        question: '',
+        options: [{ text: '' }, { text: '' }],
+      });
 
-    // go to vote page
-    navigate(`/poll/${poll.id}`);
+      toast.success('Poll created');
+
+      // go to vote page
+      navigate(`/poll/${poll.id}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to create poll';
+      toast.error(message);
+    }
   };
 
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Create Poll</h1>
-        <p className="mt-1 text-black/60">Build a question, add options, share the link.</p>
+        <p className="mt-1 text-[var(--smart-secondary)]">Build a question, add options, share the link.</p>
       </div>
 
       <Card>

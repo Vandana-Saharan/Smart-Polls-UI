@@ -1,44 +1,81 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import { toast } from 'sonner';
-import { getVoterId } from '../../lib/voter';
-import { ensureResults, submitVote } from '../../lib/resultsRepo';
 
 import CopyButton from '../../components/shared/CopyButton';
 import Button from '../../components/ui/Button';
 import { Card, CardTitle } from '../../components/ui/Card';
 import { getPoll } from '../../lib/pollsRepo';
+import { getVoterId } from '../../lib/voter';
+import { submitVote } from '../../lib/resultsRepo';
+import type { Poll } from '../../types/poll';
 
 export default function VotePage() {
   const { pollId } = useParams();
-
-  const poll = useMemo(() => (pollId ? getPoll(pollId) : null), [pollId]);
+  const [poll, setPoll] = useState<Poll | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedOptionId, setSelectedOptionId] = useState<string>('');
 
+  useEffect(() => {
+    if (!pollId) return;
+    let cancelled = false;
+    async function load() {
+      try {
+        const data = await getPoll(pollId);
+        if (!cancelled) setPoll(data);
+      } catch (err) {
+        if (!cancelled) {
+          const message = err instanceof Error ? err.message : 'Failed to load poll';
+          setError(message);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [pollId]);
+
   if (!pollId) {
-    return <div className="text-black/60">Invalid poll.</div>;
+    return <div className="text-[var(--smart-secondary)]">Invalid poll.</div>;
   }
 
-  if (!poll) {
+  if (loading) {
+    return <div className="text-[var(--smart-secondary)]">Loading poll…</div>;
+  }
+
+  if (error) {
     return (
       <div className="space-y-3">
-        <h1 className="text-2xl font-bold">Poll not found</h1>
-        <p className="text-black/60">This poll ID doesn’t exist (or was deleted).</p>
+        <h1 className="text-2xl font-bold">Error</h1>
+        <p className="text-[var(--smart-secondary)]">{error}</p>
         <Link to="/">
           <Button variant="secondary">Go home</Button>
         </Link>
       </div>
     );
   }
-  // make sure results object exists
-  ensureResults(poll);
 
+  if (!poll) {
+    return (
+      <div className="space-y-3">
+        <h1 className="text-2xl font-bold">Poll not found</h1>
+        <p className="text-[var(--smart-secondary)]">This poll ID doesn’t exist (or was deleted).</p>
+        <Link to="/">
+          <Button variant="secondary">Go home</Button>
+        </Link>
+      </div>
+    );
+  }
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Vote</h1>
-        <p className="mt-1 text-black/60">Poll ID: {pollId}</p>
+        <p className="mt-1 text-[var(--smart-secondary)]">Poll ID: {pollId}</p>
       </div>
 
       <Card>
@@ -47,7 +84,7 @@ export default function VotePage() {
           {poll.options.map((opt) => (
             <label
               key={opt.id}
-              className="flex cursor-pointer items-center gap-3 rounded-xl border border-black/10 bg-white p-3 hover:bg-black/5"
+              className="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--smart-secondary)]/20 bg-white p-3 hover:bg-[var(--smart-accent)]/10"
             >
               <input
                 type="radio"
@@ -64,24 +101,31 @@ export default function VotePage() {
           <Button
             disabled={!selectedOptionId}
             onClick={() => {
-              const voterId = getVoterId();
-              const result = submitVote({
-                poll,
-                optionId: selectedOptionId,
-                voterId,
-              });
+              if (!pollId) return;
+              (async () => {
+                try {
+                  const voterId = getVoterId();
+                  const result = await submitVote(pollId, {
+                    optionId: selectedOptionId,
+                    voterId,
+                  });
 
-              if (!result.ok && result.reason === 'ALREADY_VOTED') {
-                toast.error('You already voted on this poll (on this device).');
-                return;
-              }
+                  if (!result.ok && result.reason === 'ALREADY_VOTED') {
+                    toast.error('You already voted on this poll (on this device).');
+                    return;
+                  }
 
-              if (!result.ok) {
-                toast.error('Could not submit vote.');
-                return;
-              }
+                  if (!result.ok) {
+                    toast.error('Could not submit vote.');
+                    return;
+                  }
 
-              toast.success('Vote submitted!');
+                  toast.success('Vote submitted!');
+                } catch (err) {
+                  const message = err instanceof Error ? err.message : 'Could not submit vote.';
+                  toast.error(message);
+                }
+              })();
             }}
           >
             Submit vote
@@ -91,10 +135,10 @@ export default function VotePage() {
             <Button variant="secondary">View results</Button>
           </Link>
         </div>{' '}
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-black/10 bg-white p-4">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[var(--smart-secondary)]/20 bg-white p-4">
           <div className="min-w-0">
-            <p className="text-sm font-medium">Share poll</p>
-            <p className="mt-1 truncate text-sm text-black/60">{window.location.href}</p>
+            <p className="text-sm font-medium text-[var(--smart-primary)]">Share poll</p>
+            <p className="mt-1 truncate text-sm text-[var(--smart-secondary)]">{window.location.href}</p>
           </div>
 
           <CopyButton text={window.location.href} label="Copy poll link" />

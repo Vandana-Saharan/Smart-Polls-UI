@@ -1,1 +1,9 @@
 @import 'tailwindcss';
+
+/* Smart Polls palette */
+:root {
+  --smart-primary: #0c2b4e;
+  --smart-secondary: #1a3d64;
+  --smart-accent: #1d546c;
+  --smart-bg: #f4f4f4;
+}

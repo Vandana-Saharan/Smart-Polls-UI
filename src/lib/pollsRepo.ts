@@ -1,54 +1,51 @@
-import { nanoid } from 'nanoid';
+import type { Poll, PollOption } from '../types/poll';
+import { apiDelete, apiGet, apiPost } from './api';
 
-import type { Poll } from '../types/poll';
-import { readJson, writeJson } from './storage';
-
-const STORAGE_KEY = 'smartpolls:pools:v1'; // versioned key (best practice)
-
-type PollsState = {
-  polls: Record<string, Poll>;
+type PollResponse = {
+  id: string;
+  question: string;
+  createdAt: string;
+  options: {
+    id: string;
+    text: string;
+  }[];
 };
 
-function readState(): PollsState {
-  return readJson<PollsState>(STORAGE_KEY, { polls: {} });
+function mapPollResponse(p: PollResponse): Poll {
+  return {
+    id: p.id,
+    question: p.question,
+    createdAt: p.createdAt,
+    options: p.options.map(
+      (o): PollOption => ({
+        id: o.id,
+        text: o.text,
+      }),
+    ),
+  };
 }
 
-function writeState(state: PollsState) {
-  writeJson(STORAGE_KEY, state);
-}
-
-export function createPoll(input: { question: string; options: string[] }): Poll {
-  const id = nanoid(10);
-
-  const poll: Poll = {
-    id,
+export async function createPoll(input: { question: string; options: string[] }): Promise<Poll> {
+  const payload = {
     question: input.question.trim(),
-    options: input.options.map((text) => ({
-      id: nanoid(8),
-      text: text.trim(),
-    })),
-    createdAt: new Date().toISOString(),
+    options: input.options.map((text) => text.trim()),
   };
 
-  const state = readState();
-  state.polls[poll.id] = poll;
-  writeState(state);
-
-  return poll;
+  const res = await apiPost<typeof payload, PollResponse>('/api/polls', payload);
+  return mapPollResponse(res);
 }
 
-export function getPoll(pollId: string): Poll | null {
-  const state = readState();
-  return state.polls[pollId] ?? null;
+export async function getPoll(pollId: string): Promise<Poll> {
+  const res = await apiGet<PollResponse>(`/api/polls/${encodeURIComponent(pollId)}`);
+  return mapPollResponse(res);
 }
 
-export function listPolls(): Poll[] {
-  const state = readState();
-  return Object.values(state.polls).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+export async function listPolls(): Promise<Poll[]> {
+  const res = await apiGet<PollResponse[]>('/api/polls');
+  return res.map(mapPollResponse).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-export function deletePoll(pollId: string) {
-  const state = readState();
-  delete state.polls[pollId];
-  writeState(state);
+export async function deletePoll(pollId: string): Promise<void> {
+  await apiDelete(`/api/polls/${encodeURIComponent(pollId)}`);
 }
+
