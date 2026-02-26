@@ -19,11 +19,13 @@ export default function VotePage() {
   const [selectedOptionId, setSelectedOptionId] = useState<string>('');
 
   useEffect(() => {
-    if (!pollId) return;
+    const id = pollId;
+    if (!id) return;
+    const safeId: string = id;
     let cancelled = false;
     async function load() {
       try {
-        const data = await getPoll(pollId);
+        const data = await getPoll(safeId);
         if (!cancelled) setPoll(data);
       } catch (err) {
         if (!cancelled) {

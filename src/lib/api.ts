@@ -5,10 +5,9 @@ async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     let message = res.statusText;
     try {
-      const data = await res.json();
-      if (typeof data?.message === 'string') {
-        message = data.message;
-      }
+      const data = (await res.json()) as { message?: string; error?: string };
+      if (typeof data?.message === 'string') message = data.message;
+      else if (typeof data?.error === 'string') message = data.error;
     } catch {
       // ignore JSON parse errors
     }

@@ -6,8 +6,8 @@ import { toast } from 'sonner';
 import Button from '../../components/ui/Button';
 import { Card, CardTitle } from '../../components/ui/Card';
 import { deletePoll, listPolls } from '../../lib/pollsRepo';
-import { getResults } from '../../lib/resultsRepo';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
+import type { Poll } from '../../types/poll';
 
 function formatDate(iso: string) {
   try {
@@ -19,7 +19,7 @@ function formatDate(iso: string) {
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const [polls, setPolls] = useState(() => []);
+  const [polls, setPolls] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

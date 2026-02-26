@@ -1,7 +1,7 @@
 import type { Payload } from 'recharts/types/component/DefaultTooltipContent';
 
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import CopyButton from '../../components/shared/CopyButton';
@@ -19,11 +19,13 @@ export default function ResultsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!pollId) return;
+    const id = pollId;
+    if (!id) return;
+    const safeId: string = id;
     let cancelled = false;
     async function load() {
       try {
-        const [pollData, resultsData] = await Promise.all([getPoll(pollId), getResults(pollId)]);
+        const [pollData, resultsData] = await Promise.all([getPoll(safeId), getResults(safeId)]);
         if (!cancelled) {
           setPoll(pollData);
           setResults(resultsData);
