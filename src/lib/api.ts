@@ -1,5 +1,5 @@
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL?.replace(/\/+$/, '') ?? 'http://localhost:8080';
+  import.meta.env.VITE_API_URL?.replace(/\/+$/, '') ?? 'https://smart-polls-backend-4.onrender.com';
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -58,4 +58,3 @@ export async function apiDelete(path: string): Promise<void> {
     await handleResponse<void>(res);
   }
 }
-
