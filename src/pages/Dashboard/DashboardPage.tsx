@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
+import { useAuth } from '../../app/auth/AuthContext';
 import Button from '../../components/ui/Button';
 import { Card, CardTitle } from '../../components/ui/Card';
 import { deletePoll, listPolls } from '../../lib/pollsRepo';
@@ -19,11 +20,21 @@ function formatDate(iso: string) {
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const [polls, setPolls] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
+    if (authLoading || !isAuthenticated) {
+      return;
+    }
+
     let cancelled = false;
     async function load() {
       try {
@@ -47,7 +58,7 @@ export default function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [authLoading, isAuthenticated, navigate]);
 
   // votes are derived data -> compute with useMemo for cleanliness
   const pollsWithVotes = useMemo(() => {
@@ -58,7 +69,7 @@ export default function DashboardPage() {
     });
   }, [polls]);
 
-  if (loading) {
+  if (authLoading || loading) {
     return <div className="text-[var(--smart-secondary)]">Loading polls…</div>;
   }
 
@@ -138,26 +149,28 @@ export default function DashboardPage() {
                     Results
                   </Button>
 
-                  <ConfirmDialog
-                    title="Delete poll?"
-                    description="This will permanently remove the poll and its results."
-                    confirmText="Delete"
-                    cancelText="Cancel"
-                    onConfirm={() => {
-                      (async () => {
-                        try {
-                          await deletePoll(poll.id);
-                          toast.success('Poll deleted');
-                          setPolls((prev) => prev.filter((p) => p.id !== poll.id));
-                        } catch (err) {
-                          const message =
-                            err instanceof Error ? err.message : 'Failed to delete poll';
-                          toast.error(message);
-                        }
-                      })();
-                    }}
-                    trigger={<Button variant="danger">Delete</Button>}
-                  />
+                  {user && (user.role === 'ADMIN' || poll.createdBy === user.userId) ? (
+                    <ConfirmDialog
+                      title="Delete poll?"
+                      description="This will permanently remove the poll and its results."
+                      confirmText="Delete"
+                      cancelText="Cancel"
+                      onConfirm={() => {
+                        (async () => {
+                          try {
+                            await deletePoll(poll.id);
+                            toast.success('Poll deleted');
+                            setPolls((prev) => prev.filter((p) => p.id !== poll.id));
+                          } catch (err) {
+                            const message =
+                              err instanceof Error ? err.message : 'Failed to delete poll';
+                            toast.error(message);
+                          }
+                        })();
+                      }}
+                      trigger={<Button variant="danger">Delete</Button>}
+                    />
+                  ) : null}
                 </div>
               </div>
             </Card>

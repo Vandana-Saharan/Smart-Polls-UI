@@ -3,16 +3,17 @@ import { Link, useParams } from 'react-router-dom';
 
 import { toast } from 'sonner';
 
+import { useAuth } from '../../app/auth/AuthContext';
 import CopyButton from '../../components/shared/CopyButton';
 import Button from '../../components/ui/Button';
 import { Card, CardTitle } from '../../components/ui/Card';
 import { getPoll } from '../../lib/pollsRepo';
-import { getVoterId } from '../../lib/voter';
 import { submitVote } from '../../lib/resultsRepo';
 import type { Poll } from '../../types/poll';
 
 export default function VotePage() {
   const { pollId } = useParams();
+  const { isAuthenticated, user } = useAuth();
   const [poll, setPoll] = useState<Poll | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,19 +102,23 @@ export default function VotePage() {
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <Button
-            disabled={!selectedOptionId}
+            disabled={!selectedOptionId || !isAuthenticated}
             onClick={() => {
               if (!pollId) return;
               (async () => {
                 try {
-                  const voterId = getVoterId();
+                  if (!user) {
+                    toast.error('Please login to vote.');
+                    return;
+                  }
+
                   const result = await submitVote(pollId, {
                     optionId: selectedOptionId,
-                    voterId,
+                    voterId: user.userId,
                   });
 
                   if (!result.ok && result.reason === 'ALREADY_VOTED') {
-                    toast.error('You already voted on this poll (on this device).');
+                    toast.error('You have already voted on this poll.');
                     return;
                   }
 
@@ -137,6 +142,11 @@ export default function VotePage() {
             <Button variant="secondary">View results</Button>
           </Link>
         </div>{' '}
+        {!isAuthenticated ? (
+          <p className="mt-3 text-sm text-[var(--smart-secondary)]">
+            Anyone can view this poll. Login is required to vote.
+          </p>
+        ) : null}
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[var(--smart-secondary)]/20 bg-white p-4">
           <div className="min-w-0">
             <p className="text-sm font-medium text-[var(--smart-primary)]">Share poll</p>

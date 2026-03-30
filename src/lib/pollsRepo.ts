@@ -5,6 +5,8 @@ type PollResponse = {
   id: string;
   question: string;
   createdAt: string;
+  ownerId?: string | null;
+  createdBy?: string | null;
   options: {
     id: string;
     text: string;
@@ -16,6 +18,8 @@ function mapPollResponse(p: PollResponse): Poll {
     id: p.id,
     question: p.question,
     createdAt: p.createdAt,
+    ownerId: p.ownerId ?? null,
+    createdBy: p.createdBy ?? p.ownerId ?? null,
     options: p.options.map(
       (o): PollOption => ({
         id: o.id,
@@ -48,4 +52,3 @@ export async function listPolls(): Promise<Poll[]> {
 export async function deletePoll(pollId: string): Promise<void> {
   await apiDelete(`/api/polls/${encodeURIComponent(pollId)}`);
 }
-

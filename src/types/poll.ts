@@ -8,6 +8,8 @@ export type Poll = {
   question: string;
   options: PollOption[];
   createdAt: string;
+  ownerId?: string | null;
+  createdBy?: string | null;
 };
 
 export type PollResults = {

@@ -1,5 +1,6 @@
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 
+import { useAuth } from '../auth/AuthContext';
 import { cn } from '../../lib/cn';
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -11,6 +12,9 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   );
 
 export default function MainLayout() {
+  const navigate = useNavigate();
+  const { isAuthenticated, logout } = useAuth();
+
   return (
     <div className="min-h-screen bg-[var(--smart-bg)] text-[var(--smart-primary)]">
       <header className="border-b border-[var(--smart-secondary)]/20 bg-white">
@@ -30,6 +34,30 @@ export default function MainLayout() {
               Dashboard
             </NavLink>
           </nav>
+
+          <div>
+            {isAuthenticated ? (
+              <button
+                className="rounded-xl px-3 py-2 text-sm transition bg-[var(--smart-secondary)]/10 text-[var(--smart-primary)] hover:bg-[var(--smart-accent)]/10"
+                onClick={() => {
+                  logout();
+                  navigate('/login');
+                }}
+                type="button"
+              >
+                Logout
+              </button>
+            ) : (
+              <Link to="/login">
+                <button
+                  className="rounded-xl px-3 py-2 text-sm transition bg-[var(--smart-secondary)]/10 text-[var(--smart-primary)] hover:bg-[var(--smart-accent)]/10"
+                  type="button"
+                >
+                  Login
+                </button>
+              </Link>
+            )}
+          </div>
         </div>
       </header>
 

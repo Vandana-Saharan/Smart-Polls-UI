@@ -6,6 +6,8 @@ import DashboardPage from '../../pages/Dashboard/DashboardPage';
 import ResultsPage from '../../pages/Results/ResultsPage';
 import VotePage from '../../pages/Vote/VotePage';
 import WelcomePage from '../../pages/Welcome/WelcomePage';
+import LoginPage from '../../pages/Login/LoginPage';
+import RegisterPage from '../../pages/Register/RegisterPage';
 import NotFoundPage from '../../pages/NotFound/NotFoundPage';
 
 const router = createBrowserRouter([
@@ -16,6 +18,8 @@ const router = createBrowserRouter([
       { index: true, element: <WelcomePage /> }, // "/" – welcome landing
       { path: 'create', element: <CreatePollPage /> }, // "/create"
       { path: 'dashboard', element: <DashboardPage /> }, // "/dashboard"
+      { path: 'login', element: <LoginPage /> }, // "/login"
+      { path: 'register', element: <RegisterPage /> }, // "/register"
       { path: 'poll/:pollId', element: <VotePage /> }, // "/poll/123"
       { path: 'poll/:pollId/results', element: <ResultsPage /> }, // "/poll/123/results"
       { path: '*', element: <NotFoundPage /> },

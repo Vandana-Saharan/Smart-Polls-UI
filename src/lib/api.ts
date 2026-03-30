@@ -1,31 +1,46 @@
+import { getToken } from './auth';
+
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL?.replace(/\/+$/, '') ?? 'https://smart-polls-backend-4.onrender.com';
+  import.meta.env.VITE_API_URL?.replace(/\/+$/, '') ?? 'http://localhost:8080';
+
+async function parseJsonSafely<T>(res: Response): Promise<T | undefined> {
+  const raw = await res.text();
+  if (!raw.trim()) {
+    return undefined;
+  }
+
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return undefined;
+  }
+}
 
 async function handleResponse<T>(res: Response): Promise<T> {
+  const data = await parseJsonSafely<{ message?: string; error?: string } & T>(res);
+
   if (!res.ok) {
     let message = res.statusText;
-    try {
-      const data = (await res.json()) as { message?: string; error?: string };
-      if (typeof data?.message === 'string') message = data.message;
-      else if (typeof data?.error === 'string') message = data.error;
-    } catch {
-      // ignore JSON parse errors
-    }
+    if (typeof data?.message === 'string') message = data.message;
+    else if (typeof data?.error === 'string') message = data.error;
     throw new Error(message || `Request failed with status ${res.status}`);
   }
-  // 204 No Content
-  if (res.status === 204) {
+
+  if (res.status === 204 || data === undefined) {
     // @ts-expect-error - caller should handle void
     return undefined;
   }
-  return (await res.json()) as T;
+
+  return data as T;
 }
 
 export async function apiGet<T>(path: string): Promise<T> {
+  const token = getToken();
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: 'GET',
     headers: {
       Accept: 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
   return handleResponse<T>(res);
@@ -35,11 +50,13 @@ export async function apiPost<TRequest, TResponse>(
   path: string,
   body: TRequest,
 ): Promise<TResponse> {
+  const token = getToken();
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(body),
   });
@@ -47,10 +64,12 @@ export async function apiPost<TRequest, TResponse>(
 }
 
 export async function apiDelete(path: string): Promise<void> {
+  const token = getToken();
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: 'DELETE',
     headers: {
       Accept: 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
   if (!res.ok) {

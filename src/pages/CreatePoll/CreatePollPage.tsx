@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useFieldArray, useForm } from 'react-hook-form';
@@ -5,6 +6,7 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 
 import { createPoll } from '../../lib/pollsRepo';
+import { useAuth } from '../../app/auth/AuthContext';
 
 import Button from '../../components/ui/Button';
 import { Card, CardTitle } from '../../components/ui/Card';
@@ -28,8 +30,14 @@ const createPollSchema = z.object({
 type CreatePollForm = z.infer<typeof createPollSchema>;
 
 export default function CreatePollPage() {
-  // 2) useForm manages form state + validation
   const navigate = useNavigate();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      navigate('/login');
+    }
+  }, [isAuthenticated, isLoading, navigate]);
 
   const form = useForm<CreatePollForm>({
     resolver: zodResolver(createPollSchema),
@@ -40,12 +48,17 @@ export default function CreatePollPage() {
     mode: 'onTouched',
   });
 
-  // 3) useFieldArray manages dynamic option inputs
   const optionsArray = useFieldArray({
     control: form.control,
     name: 'options',
   });
   const onSubmit = async (values: CreatePollForm) => {
+    if (!isAuthenticated) {
+      toast.error('Please login to create a poll.');
+      navigate('/login');
+      return;
+    }
+
     try {
       const poll = await createPoll({
         question: values.question,
